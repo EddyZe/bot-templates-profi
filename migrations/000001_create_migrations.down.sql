@@ -1,1 +1,1 @@
-drop table if exists usrs;
+drop table if exists usr;

@@ -3,6 +3,7 @@ package cmdstart
 import (
 	"bot-templates-profi/internal/commands"
 	"bot-templates-profi/internal/domain/entity"
+	"bot-templates-profi/internal/repositories/userrepo"
 	"bot-templates-profi/internal/services/userservice"
 	"context"
 	"github.com/go-telegram/bot"
@@ -39,10 +40,37 @@ func (c *CmdStart[T]) executeMessage(ctx context.Context, v *models.Message) {
 	}
 
 	if err := c.us.CreateUser(ctx, &newUser); err != nil {
-		log.Println(err)
+		if err.Error() == userrepo.UserIsExist {
+			if err := c.us.UpdateByTelegramId(ctx, &newUser); err != nil {
+				if err.Error() == userrepo.UserNotFound {
+					log.Println(err)
+					return
+				} else {
+					if _, err := c.b.SendMessage(
+						ctx,
+						&bot.SendMessageParams{
+							ChatID: chatId,
+							Text:   "Ошибка на стороне сервера.",
+						}); err != nil {
+						log.Println(err)
+						return
+					}
+				}
+			}
+		} else {
+			if _, err := c.b.SendMessage(
+				ctx,
+				&bot.SendMessageParams{
+					ChatID: chatId,
+					Text:   "Ошибка на стороне сервера.",
+				}); err != nil {
+				log.Println(err)
+				return
+			}
+		}
 	}
 
-	msg, err := c.b.SendMessage(
+	_, err := c.b.SendMessage(
 		ctx,
 		&bot.SendMessageParams{
 			ChatID: chatId,
@@ -53,5 +81,4 @@ func (c *CmdStart[T]) executeMessage(ctx context.Context, v *models.Message) {
 		return
 	}
 
-	log.Println(msg)
 }

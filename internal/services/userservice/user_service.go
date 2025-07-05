@@ -9,6 +9,7 @@ import (
 type UserService interface {
 	CreateUser(ctx context.Context, user *entity.User) error
 	FindAll(ctx context.Context) []entity.User
+	UpdateByTelegramId(ctx context.Context, user *entity.User) error
 }
 
 type USDefault struct {
@@ -25,4 +26,8 @@ func (s *USDefault) CreateUser(ctx context.Context, user *entity.User) error {
 
 func (s *USDefault) FindAll(ctx context.Context) []entity.User {
 	return s.repo.FindAll(ctx)
+}
+
+func (s *USDefault) UpdateByTelegramId(ctx context.Context, user *entity.User) error {
+	return s.repo.UpdateByTelegramId(ctx, user)
 }
