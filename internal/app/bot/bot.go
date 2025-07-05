@@ -2,34 +2,44 @@ package bot
 
 import (
 	"bot-templates-profi/internal/config"
-	"bot-templates-profi/internal/handlers/bothandler"
+	"bot-templates-profi/internal/handlers/telegramhandl"
 	"context"
+	"errors"
 	"github.com/go-telegram/bot"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 type TgBot struct {
-	*bot.Bot
+	cfg     *config.TelegramBotConfig
+	handler telegramhandl.Handler
 }
 
-func New(cfg *config.TelegramBotConfig) (*TgBot, error) {
-	opts := []bot.Option{
-		bot.WithDefaultHandler(bothandler.DefaultHandler),
-	}
-
-	b, err := bot.New(cfg.Token, opts...)
-	if err != nil {
-		return nil, err
+func New(cfg *config.TelegramBotConfig, handler telegramhandl.Handler) (*TgBot, error) {
+	if cfg.Token == "" {
+		return nil, errors.New("telegram bot token is required")
 	}
 
 	return &TgBot{
-		b,
+		cfg:     cfg,
+		handler: handler,
 	}, nil
 }
 
-func (t *TgBot) Start() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-	t.Bot.Start(ctx)
+func (t *TgBot) Start() error {
+	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+
+	opts := []bot.Option{
+		bot.WithDefaultHandler(t.handler.Handle),
+	}
+
+	b, err := bot.New(t.cfg.Token, opts...)
+	if err != nil {
+		return err
+	}
+
+	b.Start(ctx)
+
+	return nil
 }
