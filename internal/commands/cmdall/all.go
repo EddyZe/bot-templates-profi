@@ -69,5 +69,11 @@ func (s *AllUsers[T]) Execute(ctx context.Context, arg T) {
 			}); err != nil {
 			log.Println(err)
 		}
+
+		go func(file *os.File) {
+			if err := os.Remove(file.Name()); err != nil {
+				log.Println(err)
+			}
+		}(f)
 	}
 }

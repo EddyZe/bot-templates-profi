@@ -8,12 +8,14 @@ import (
 	"bot-templates-profi/internal/commands/cmdsendtimer"
 	"bot-templates-profi/internal/commands/cmdstart"
 	"bot-templates-profi/internal/services/ieservice"
+	"bot-templates-profi/internal/services/timerservice"
 	"bot-templates-profi/internal/services/userservice"
 	"context"
 	"errors"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"log"
+	"strings"
 )
 
 const (
@@ -24,12 +26,14 @@ const (
 type TelegramHandler struct {
 	us  userservice.UserService
 	ies ieservice.IEService
+	ts  timerservice.TimerService
 }
 
-func New(us userservice.UserService, ies ieservice.IEService) *TelegramHandler {
+func New(us userservice.UserService, ies ieservice.IEService, ts timerservice.TimerService) *TelegramHandler {
 	return &TelegramHandler{
 		us:  us,
 		ies: ies,
+		ts:  ts,
 	}
 }
 
@@ -61,6 +65,14 @@ func (t *TelegramHandler) Handle(ctx context.Context, b *bot.Bot, update *models
 
 func (t *TelegramHandler) handleMessage(b *bot.Bot, message *models.Message) (commands.Command[*models.Message], error) {
 	if message.Text != "" {
+		if message.Entities != nil {
+			entity := message.Entities
+			for _, e := range entity {
+				if e.Type == "custom_emoji" {
+					log.Println(e.CustomEmojiID)
+				}
+			}
+		}
 		return t.handelTextCommand(b, message)
 	}
 
@@ -97,8 +109,8 @@ func (t *TelegramHandler) handelTextCommand(b *bot.Bot, message *models.Message)
 		return cmd, nil
 	}
 
-	if text == commands.Timer {
-		cmd := cmdsendtimer.New[*models.Message](b)
+	if strings.HasPrefix(text, commands.Timer) {
+		cmd := cmdsendtimer.New[*models.Message](b, t.ts)
 		return cmd, nil
 	}
 
